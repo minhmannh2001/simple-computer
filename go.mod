@@ -1,0 +1,3 @@
+module simple-computer
+
+go 1.26.1
