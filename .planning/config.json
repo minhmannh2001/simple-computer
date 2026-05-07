@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "project": "simple-computer",
+  "workflow": {
+    "tdd": true,
+    "commit_per_phase": true,
+    "blog_per_phase": true,
+    "blog_language": "english",
+    "blog_dir": "blog/",
+    "blog_format": "problem → context → building → insights → conclusion → next"
+  },
+  "phases": {
+    "total": 17,
+    "current": 2,
+    "completed": [1]
+  },
+  "intel": {
+    "enabled": false
+  }
+}
