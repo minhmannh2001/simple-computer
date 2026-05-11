@@ -6,9 +6,9 @@ _Updated after each phase. This is the living record of where we are and what we
 
 ## Current State
 
-**Active phase:** 02 — multi-input-gates
-**Last completed:** Phase 01 — wire-and-gates
-**Overall progress:** 1 / 17 phases done
+**Active phase:** 03 — storage-primitives
+**Last completed:** Phase 02 — multi-input-gates
+**Overall progress:** 2 / 17 phases done
 
 ---
 
@@ -27,6 +27,18 @@ _Updated after each phase. This is the living record of where we are and what we
 **Surprise:** XOR is implemented as `!((!a && !b) || (a && b))` — the NAND-derivable form that asks "are the inputs the same?" and inverts — rather than the more intuitive `(a || b) && !(a && b)`.
 
 **Blog:** `blog/BLOG-01.md` ✅
+
+### Phase 02 — multi-input-gates ✅
+**Commit:** `phase-02: multi-input gates`
+**Package:** `components`
+**Delivered:**
+- `ANDGate3`, `ANDGate4`, `ANDGate5`, `ANDGate8`
+- `ORGate3`, `ORGate4`, `ORGate5`, `ORGate6`
+- Full boundary tests (all-false, single-true, all-true, each-position-false for ANDGate8)
+
+**Key insight:** ANDGate8 uses a balanced tree (pairs → pairs-of-pairs → final) rather than a linear chain — reduces gate depth from 7 to 3, closer to real hardware layout.
+
+**Blog:** `blog/BLOG-02.md` ✅
 
 ---
 

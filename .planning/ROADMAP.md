@@ -11,7 +11,7 @@ Each phase maps to one or more chapters from _But How Do It Know?_ by J. Clark S
 | # | Name | Package | Status | Blog |
 |---|------|---------|--------|------|
 | 01 | wire-and-gates | `circuit` | ✅ Done | ✅ blog/BLOG-01.md |
-| 02 | multi-input-gates | `components` | ⬜ Not started | ⬜ |
+| 02 | multi-input-gates | `components` | ✅ Done | ✅ blog/BLOG-02.md |
 | 03 | storage-primitives | `components` | ⬜ Not started | ⬜ |
 | 04 | bus | `components` | ⬜ Not started | ⬜ |
 | 05 | enabler-and-bitwise | `components` | ⬜ Not started | ⬜ |
