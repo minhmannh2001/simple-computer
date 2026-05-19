@@ -1,3 +1,11 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-05-13T07:48:15.100Z"
+---
+
 # STATE.md — Project Memory
 
 _Updated after each phase. This is the living record of where we are and what we've learned._
@@ -6,18 +14,20 @@ _Updated after each phase. This is the living record of where we are and what we
 
 ## Current State
 
-**Active phase:** 03 — storage-primitives
-**Last completed:** Phase 02 — multi-input-gates
-**Overall progress:** 2 / 17 phases done
+**Active phase:** 11 — alu
+**Last completed:** Phase 10 — stepper
+**Overall progress:** 10 / 17 phases done
 
 ---
 
 ## Completed Phases
 
 ### Phase 01 — wire-and-gates ✅
+
 **Commit:** `phase-01: wire and logic gates`
 **Package:** `circuit`
 **Delivered:**
+
 - `Wire` struct — named, mutable single-bit state holder
 - `NANDGate`, `ANDGate`, `NOTGate`, `ORGate`, `XORGate`, `NORGate`
 - Full truth-table tests for all gate types
@@ -29,9 +39,11 @@ _Updated after each phase. This is the living record of where we are and what we
 **Blog:** `blog/BLOG-01.md` ✅
 
 ### Phase 02 — multi-input-gates ✅
+
 **Commit:** `phase-02: multi-input gates`
 **Package:** `components`
 **Delivered:**
+
 - `ANDGate3`, `ANDGate4`, `ANDGate5`, `ANDGate8`
 - `ORGate3`, `ORGate4`, `ORGate5`, `ORGate6`
 - Full boundary tests (all-false, single-true, all-true, each-position-false for ANDGate8)
@@ -39,6 +51,131 @@ _Updated after each phase. This is the living record of where we are and what we
 **Key insight:** ANDGate8 uses a balanced tree (pairs → pairs-of-pairs → final) rather than a linear chain — reduces gate depth from 7 to 3, closer to real hardware layout.
 
 **Blog:** `blog/BLOG-02.md` ✅
+
+### Phase 10 — stepper ✅
+
+**Commit:** `phase-10: stepper`
+**Package:** `components`
+**Delivered:**
+
+- `Stepper` — 12 `Bit` latches in 6 master-slave pairs forming a shift register
+- `NewStepper()` — bootstraps each `Bit`'s `gates[3]` (same as `NewBit()`), then calls `step()` to establish step-0 active state
+- `Update(clockIn bool)` — sets clock wire, checks sentinel output[6], calls `step()`; if sentinel fired, immediately calls `step()` again with `reset=true` to reset in the same call
+- `GetOutputWire(index int) bool` — returns step output 0–5
+- `String()` — "* - - - - -" style display of active step
+
+**Key insight:** Step 0 uses `OR(reset, NOT(slave[0]))` while steps 1–5 use `AND(slave[N], NOT(slave[N+1]))`. This asymmetry is what makes step 0 the "default on" state at power-on (slave[0]=false → NOT(false)=true → OR=true) without any special initialization. The double `step()` on reset ensures the sentinel clears and step 0 is live before `Update` returns — preventing a ghost 7th step.
+
+**Blog:** `blog/BLOG-10.md` ✅
+
+### Phase 09 — register ✅
+
+**Commit:** `phase-09: register`
+**Package:** `components`
+**Delivered:**
+
+- `Register` — wraps `*Word` + `*Enabler`; constructor calls `word.ConnectOutput(enabler)` so outputs flow automatically
+- `Set()` / `Unset()` — assert/deassert the latch control wire
+- `Enable()` / `Disable()` — assert/deassert the bus-drive control wire
+- `Update()` — copies inputBus → word → enabler → outputBus in sequence; only writes to outputBus when enabled
+- `Value() uint16` — reconstructs stored number from word outputs (wire 0 = MSB = 2^15)
+- `Bit(index int) bool` — returns individual wire from word output
+
+**Key insight:** `word.ConnectOutput(enabler)` is the critical line in the constructor — it means `word.Update()` automatically pushes word outputs into enabler inputs, eliminating a manual 16-wire copy loop. The chain-of-ownership pattern established in Phase 1 now spans three components in series: inputBus → word → enabler → outputBus.
+
+**Blog:** `blog/BLOG-09.md` ✅
+
+### Phase 08 — adder ✅
+
+**Commit:** `phase-08: full adder and 16-bit ripple-carry adder`
+**Package:** `components`
+**Delivered:**
+
+- `Add2` — 1-bit full adder; 5 gates (XOR, XOR, AND, AND, OR); correct truth table for all 8 input combinations
+- `Adder` — 16 `Add2` stages chained ripple-carry LSB-to-MSB; 32 input wires (0–15 = A, 16–31 = B); `Carry()` exposes MSB overflow
+- `Update(carryIn bool)` — walks stages from index 15 down to 0, each stage's carry feeds the next
+
+**Key insight:** The wire iteration walks `awire` from 15 down to 0 (A's LSB to MSB) while `i` also counts 15 → 0 (stage index). Wire 0 is the MSB of A but addition starts at wire 15. The counter decrement must be tracked separately from the stage index — they decrease in sync but represent different things (wire position vs. adder stage index).
+
+**Blog:** `blog/BLOG-08.md` ✅
+
+### Phase 07 — decoders ✅
+
+**Commit:** `phase-07: decoders`
+**Package:** `components`
+**Delivered:**
+
+- `Decoder2x4` — 2 NOT gates + 4 AND gates; one output per 2-bit combination
+- `Decoder3x8` — 3 NOT gates + 8 ANDGate3; `Index()` scans outputs for active wire
+- `Decoder4x16` — 4 NOT gates + 16 ANDGate4; `index int` field set during Update
+- `Decoder8x256` — 1 selector Decoder4x16 (high nibble a,b,c,d) + 16 sub-Decoder4x16s (low nibble e,f,g,h); only selected sub-decoder runs Update; `Index()` = sel×16 + sub.Index()
+
+**Key insight:** The bit-ordering in `Decoder8x256.Update(a,b,c,d,e,f,g,h)` has `a`=MSB (value 128) and `h`=LSB (value 1). High nibble = (a,b,c,d) selects bank 0–15; low nibble = (e,f,g,h) selects position within bank. Spec description of which nibble is "high" was inverted relative to test expectations — verified from test cases (0x80→128, 0x01→1).
+
+**Blog:** `blog/BLOG-07.md` ✅
+
+### Phase 06 — comparison-and-bus-one ✅
+
+**Commit:** `phase-06: comparison and BusOne`
+**Package:** `components`
+**Delivered:**
+
+- `Compare2` — single-bit comparator stage; produces `equalOut` and `isLargerOut` by threading flags from higher-significance bits downward; uses `XORGate`, `NOTGate`, `ANDGate` (Phase 01) and `ANDGate3` (Phase 02)
+- `Comparator` — chains 16 `Compare2` stages MSB-first; seed: `equalIn=true`, `isLargerIn=false`; exposes `Equal()` and `Larger()` flags
+- `BusOne` — reads from `*Bus`, writes to `*Bus`; when disabled passes input through; when enabled outputs constant `0x0001` via `input[i] AND NOT(bus1)` for upper bits and `input[15] OR bus1` for LSB
+
+**Key insight:** The MSB-first chaining order is load-bearing: the OR in `isLargerOut` only accumulates findings — it cannot retract a wrong "larger" set by a low bit later overridden by a more significant bit. Running LSB-first would produce wrong comparisons for any case where MSB differs. BusOne uses the AND/NOT + OR formula to avoid any branching — the same two formulas implement both pass-through and constant-1 modes.
+
+**Blog:** `blog/BLOG-06.md` ✅
+
+### Phase 05 — enabler-and-bitwise ✅
+
+**Commit:** `phase-05: enabler and bitwise operation components`
+**Package:** `components`
+**Delivered:**
+
+- `Enabler` — 16 AND gates sharing one enable wire; disabled output is always all-zero
+- `NOTer` — 16 NOT gates in parallel; inverts every input bit
+- `ANDer` — 16 AND gates across two 16-bit operands (inputs 0–15 = A, 16–31 = B)
+- `ORer` — 16 OR gates across two 16-bit operands
+- `XORer` — 16 XOR gates across two 16-bit operands
+- `LeftShifter` — wiring rearrangement: output[i] = input[i+1]; captures shiftOut, fills shiftIn
+- `RightShifter` — mirror of LeftShifter; output[i] = input[i-1]
+- `IsZero` — ORs all 16 inputs (feeding same value to both A and B sides), then NOTs the result
+
+**Key insight:** The Enabler's guarantee that disabled outputs are all-zero — not floating — is what makes shared bus wiring safe. IsZero reuses the existing ORer by feeding each input to both operand slots simultaneously (`OR(x, x) = x`), collapsing 16 bits into a single "any true?" check without building a new 16-input OR.
+
+**Blog:** `blog/BLOG-05.md` ✅
+
+### Phase 04 — bus ✅
+
+**Commit:** `phase-04: bus`
+**Package:** `components`
+**Delivered:**
+
+- `Bus` struct — 16-wire shared channel with stable `circuit.Wire` state
+- `SetValue(uint16)` — decomposes a 16-bit number MSB-first into wire array
+- `String()` — binary string representation, index 0 (MSB) first
+- `Component` interface compliance (`ConnectOutput` is a no-op)
+
+**Key insight:** `SetValue` iterates wire indices from high to low while extracting bits low to high — the index and bit position are reversed. Wire 0 = MSB (bit 15), wire 15 = LSB (bit 0). Getting this order wrong produces a mirrored number that passes naive tests but fails `0x0001` vs `0x8000` edge cases.
+
+**Blog:** `blog/BLOG-04.md` ✅
+
+### Phase 03 — storage-primitives ✅
+
+**Commit:** `phase-03: storage primitives (Bit and Word)`
+**Package:** `components`
+**Delivered:**
+
+- `Bit` — 4-NAND SR latch with double-pass stabilization
+- `Word` — 16 `Bit`s in parallel with shared set signal
+- `Component` interface — `ConnectOutput`, `SetInputWire`, `GetOutputWire`
+- `BUS_WIDTH = 16` constant
+
+**Key insight:** The zero-value struct is an invalid latch state — Go initializes all NAND outputs to false, but real NAND gates can't all be zero simultaneously. `NewBit()` must bootstrap `gates[3]` to true before the latch can hold state correctly. The double-pass `Update` is necessary because the feedback path through gates[3] needs one pass to propagate and a second to fully settle.
+
+**Blog:** `blog/BLOG-03.md` ✅
 
 ---
 

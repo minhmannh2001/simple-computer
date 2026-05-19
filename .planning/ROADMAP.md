@@ -12,14 +12,14 @@ Each phase maps to one or more chapters from _But How Do It Know?_ by J. Clark S
 |---|------|---------|--------|------|
 | 01 | wire-and-gates | `circuit` | ✅ Done | ✅ blog/BLOG-01.md |
 | 02 | multi-input-gates | `components` | ✅ Done | ✅ blog/BLOG-02.md |
-| 03 | storage-primitives | `components` | ⬜ Not started | ⬜ |
-| 04 | bus | `components` | ⬜ Not started | ⬜ |
-| 05 | enabler-and-bitwise | `components` | ⬜ Not started | ⬜ |
-| 06 | comparison-and-bus-one | `components` | ⬜ Not started | ⬜ |
-| 07 | decoders | `components` | ⬜ Not started | ⬜ |
-| 08 | adder | `components` | ⬜ Not started | ⬜ |
-| 09 | register | `components` | ⬜ Not started | ⬜ |
-| 10 | stepper | `components` | ⬜ Not started | ⬜ |
+| 03 | storage-primitives | `components` | ✅ Done | ✅ blog/BLOG-03.md |
+| 04 | bus | `components` | ✅ Done | ✅ blog/BLOG-04.md |
+| 05 | enabler-and-bitwise | `components` | ✅ Done | ✅ blog/BLOG-05.md |
+| 06 | comparison-and-bus-one | `components` | ✅ Done | ✅ blog/BLOG-06.md |
+| 07 | decoders | `components` | ✅ Done | ✅ blog/BLOG-07.md |
+| 08 | adder | `components` | ✅ Done | ✅ blog/BLOG-08.md |
+| 09 | register | `components` | ✅ Done | ✅ blog/BLOG-09.md |
+| 10 | stepper | `components` | ✅ Done | ✅ blog/BLOG-10.md |
 | 11 | alu | `alu` | ⬜ Not started | ⬜ |
 | 12 | memory | `memory` | ⬜ Not started | ⬜ |
 | 13 | iobus-and-peripheral | `io` | ⬜ Not started | ⬜ |
