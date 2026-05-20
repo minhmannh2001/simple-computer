@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-13T07:48:15.100Z"
+last_updated: "2026-05-20T00:00:00.000Z"
 ---
 
 # STATE.md — Project Memory
@@ -14,9 +14,9 @@ _Updated after each phase. This is the living record of where we are and what we
 
 ## Current State
 
-**Active phase:** 11 — alu
-**Last completed:** Phase 10 — stepper
-**Overall progress:** 10 / 17 phases done
+**Active phase:** 13 — iobus-and-peripheral
+**Last completed:** Phase 12 — memory
+**Overall progress:** 12 / 17 phases done
 
 ---
 
@@ -51,6 +51,39 @@ _Updated after each phase. This is the living record of where we are and what we
 **Key insight:** ANDGate8 uses a balanced tree (pairs → pairs-of-pairs → final) rather than a linear chain — reduces gate depth from 7 to 3, closer to real hardware layout.
 
 **Blog:** `blog/BLOG-02.md` ✅
+
+### Phase 12 — memory ✅
+
+**Commit:** `phase-12: 64K RAM`
+**Package:** `memory`
+**Delivered:**
+
+- `Cell` — wraps `components.Register` with three AND gates for hardware-fidelity set/enable gating; `NewCell(inputBus, outputBus *Bus) *Cell`; `Update(set, enable bool)`
+- `Memory64K` — 256×256 grid of Cells sharing a single bus; `AddressRegister components.Register` (exported for CPU access); two `Decoder8x256` units decode high/low bytes of the 16-bit address to row/column; `Set`/`Unset`/`Enable`/`Disable`/`Update`/`String`
+- Two-phase protocol: Phase 1 loads address into MAR; Phase 2 reads or writes the selected cell
+
+**Key insight discovered:** The MAR retains its value between Update calls when set=false because the Bit latches only change on set=true. This is what makes the two-phase protocol possible — the bus can carry different things (address, then data) in sequential cycles while the MAR holds the address across both.
+
+**Non-obvious:** All 65,536 cells share the same bus. This is safe because Register.Update() only writes to outputBus when enable=true, and only one cell is ever enabled per Update call. Non-selected cells read the bus silently (their word inputs are updated) but don't latch (set=false) and don't drive (enable=false).
+
+**Blog:** `blog/BLOG-12.md` ✅
+
+### Phase 11 — alu ✅
+
+**Commit:** `phase-11: ALU`
+**Package:** `alu`
+**Delivered:**
+
+- `ALU` struct — wires inputABus, inputBBus, outputBus, flagsOutputBus together with an Adder, RightShifter, LeftShifter, NOTer, ANDer, ORer, XORer, Comparator, IsZero, Decoder3x8, 7 Enablers, and 3 carry AND gates
+- `NewALU(inputABus, inputBBus, outputBus, flagsOutputBus *Bus) *ALU` — constructor wires the four buses
+- `Update()` — decodes 3-bit opcode, runs relevant operation, gates result through corresponding Enabler onto outputBus, writes 4 flags (carry, aIsLarger, isEqual, isZero) to flagsOutputBus
+- Operation constants: `ADD=0, SHR=1, SHL=2, NOT=3, AND=4, OR=5, XOR=6, CMP=7`
+
+**Key insight discovered:** The Comparator always runs regardless of opcode — not just during CMP. This keeps `aIsLarger` and `isEqual` flags perpetually fresh. If it only ran during CMP, stale comparison flags would persist through subsequent non-CMP operations and require explicit clearing logic in the control unit.
+
+**Non-obvious:** CMP has no enabler and forces `isZero` inputs to all-true (not all-false). If isZero inputs were all-false, the zero flag would fire — falsely claiming the comparison "result" is zero. Forcing all-true ensures IsZero outputs false. The real CMP result lives in the flags bus, not the output bus.
+
+**Blog:** `blog/BLOG-11.md` ✅
 
 ### Phase 10 — stepper ✅
 
