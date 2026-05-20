@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-20T00:00:00.000Z"
+last_updated: "2026-05-20T07:31:35.701Z"
 ---
 
 # STATE.md — Project Memory
@@ -14,9 +14,9 @@ _Updated after each phase. This is the living record of where we are and what we
 
 ## Current State
 
-**Active phase:** 13 — iobus-and-peripheral
-**Last completed:** Phase 12 — memory
-**Overall progress:** 12 / 17 phases done
+**Active phase:** 14 — display
+**Last completed:** Phase 13 — iobus-and-keyboard
+**Overall progress:** 13 / 17 phases done
 
 ---
 
@@ -51,6 +51,23 @@ _Updated after each phase. This is the living record of where we are and what we
 **Key insight:** ANDGate8 uses a balanced tree (pairs → pairs-of-pairs → final) rather than a linear chain — reduces gate depth from 7 to 3, closer to real hardware layout.
 
 **Blog:** `blog/BLOG-02.md` ✅
+
+### Phase 13 — iobus-and-keyboard ✅
+
+**Commit:** `phase-13: IOBus and keyboard`
+**Package:** `components` (IOBus), `io` (Peripheral, KeyboardAdapter, Keyboard)
+**Delivered:**
+
+- `IOBus` — 4-wire control bus (CLOCK_SET, CLOCK_ENABLE, MODE, DATA_OR_ADDRESS); Set/Unset/Enable/Disable/Update/query methods; lets the CPU signal "this cycle is I/O, not RAM"
+- `Peripheral` interface — `Connect(*IOBus, *Bus)` + `Update()`, the contract every I/O device implements
+- `KeyboardAdapter` — detects address `0x000F` via ANDGate8 (NOT gates on wires 0–3, direct on 12–15), latches selection in a `memoryBit` SR latch across the two IOBus phases, drives `mainBus` with the stored keycode when ENABLE+DATA+INPUT fires; `KeyboardInBus` is exported for the Keyboard goroutine
+- `Keyboard` — goroutine reading from a `chan *KeyPress` on a 33ms tick; writes `key.Value` to `KeyboardInBus` when `key.IsDown`
+
+**Key insight discovered:** `memoryBit` bridges two mutually exclusive IOBus states. The address-detection gate fires only during SET+ADDRESS+OUTPUT; the keycode-delivery gate fires only during ENABLE+DATA+INPUT. The Bit latch holds "I am selected" across the transition — without it, the keyboard would forget it was addressed the moment the CPU changed IOBus state.
+
+**Non-obvious:** `keycodeRegister` is a value type (`components.Register`) initialized in `Connect()` rather than `NewKeyboardAdapter()`, because `mainBus` isn't available until `Connect()` is called. Assigning the dereferenced `*Register` is safe — pointer fields (word, enabler, inputBus, outputBus) still reference their heap objects.
+
+**Blog:** `blog/BLOG-13.md` ✅
 
 ### Phase 12 — memory ✅
 

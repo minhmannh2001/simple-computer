@@ -22,7 +22,7 @@ Each phase maps to one or more chapters from _But How Do It Know?_ by J. Clark S
 | 10 | stepper | `components` | ✅ Done | ✅ blog/BLOG-10.md |
 | 11 | alu | `alu` | ✅ Done | ✅ blog/BLOG-11.md |
 | 12 | memory | `memory` | ✅ Done | ✅ blog/BLOG-12.md |
-| 13 | iobus-and-peripheral | `io` | ⬜ Not started | ⬜ |
+| 13 | iobus-and-keyboard | `io` | ✅ Done | ✅ blog/BLOG-13.md |
 | 14 | display | `io` | ⬜ Not started | ⬜ |
 | 15 | cpu | `cpu` | ⬜ Not started | ⬜ |
 | 16 | computer | `computer` | ⬜ Not started | ⬜ |
