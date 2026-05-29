@@ -12,7 +12,7 @@ func (l LABEL) String() string      { return l.Name }
 type SYMBOL struct{ Name string }
 
 func (SYMBOL) placeholder()         {}
-func (s SYMBOL) String() string     { return s.Name }
+func (s SYMBOL) String() string     { return "%" + s.Name }
 
 type NUMBER struct{ Value uint16 }
 

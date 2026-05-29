@@ -175,6 +175,16 @@ func (d *DisplayAdapter) toggleWriteToRAM() {
 	d.writeToRAM.Update(d.writeToRAMToggleGate.Output(), true)
 }
 
+// HasNonZeroData reports whether any displayRAM cell has been written with a non-zero value.
+func (d *DisplayAdapter) HasNonZeroData() bool {
+	for _, cell := range d.displayRAM.cells {
+		if cell != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // ScreenControl scans the display RAM at ~30fps and pushes frame snapshots to outputChan.
 type ScreenControl struct {
 	adapter    *DisplayAdapter
@@ -212,15 +222,21 @@ func (s *ScreenControl) Run() {
 }
 
 // Update scans all 4800 display RAM cells (30 bytes × 160 rows) and populates the output
-// array. Each cell holds 8 pixels in bits 15-8 (the high byte); bit 15 = leftmost pixel.
+// array. Each cell holds 8 pixels in bits 7-0 (the low byte); bit 7 = leftmost pixel.
 func (s *ScreenControl) Update() {
 	const widthInBytes = 30
 	for y := range 160 {
 		for xByte := range widthInBytes {
 			cell := s.adapter.displayRAM.cells[y*widthInBytes+xByte]
 			for bit := range 8 {
-				s.output[y][xByte*8+bit] = byte((cell >> (15 - uint(bit))) & 1)
+				s.output[y][xByte*8+bit] = byte((cell >> (7 - uint(bit))) & 1)
 			}
 		}
 	}
+}
+
+// Frame snapshots the current display state without requiring the goroutine to be running.
+func (s *ScreenControl) Frame() [160][240]byte {
+	s.Update()
+	return s.output
 }

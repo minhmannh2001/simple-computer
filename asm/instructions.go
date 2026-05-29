@@ -307,7 +307,7 @@ func (c CALL) Emit(lr LabelResolver, sr SymbolResolver) ([]uint16, error) {
 type DEFLABEL struct{ Name string }
 
 func (DEFLABEL) Size() int { return 0 }
-func (d DEFLABEL) String() string { return d.Name }
+func (d DEFLABEL) String() string { return d.Name + ":" }
 func (DEFLABEL) Emit(_ LabelResolver, _ SymbolResolver) ([]uint16, error) { return nil, nil }
 
 type DEFSYMBOL struct {

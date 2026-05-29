@@ -1,9 +1,28 @@
 package computer
 
 import (
+	"encoding/binary"
+	"os"
 	"testing"
 	"time"
 )
+
+// loadBin reads a little-endian uint16 binary file and returns a []uint16 slice.
+func loadBin(t *testing.T, path string) []uint16 {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("loadBin: %v", err)
+	}
+	if len(data)%2 != 0 {
+		t.Fatalf("loadBin: odd byte count %d", len(data))
+	}
+	words := make([]uint16, len(data)/2)
+	for i := range words {
+		words[i] = binary.LittleEndian.Uint16(data[i*2:])
+	}
+	return words
+}
 
 func newTestComputer() *SimpleComputer {
 	sc := make(chan *[160][240]byte, 1)
@@ -106,4 +125,37 @@ func TestRun_StartsAndCancels(t *testing.T) {
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("Run() did not stop after quit signal")
 	}
+}
+
+// ---- ascii.bin integration test ----
+
+// TestAsciiProgram_WritesToDisplay loads the assembled ascii program, runs it for enough
+// steps to complete font initialisation and draw the first character, then asserts:
+//  1. displayRAM has non-zero data → OUT instruction wired correctly.
+//  2. The screen frame produced by ScreenControl has at least one lit pixel → the pixel
+//     byte ordering in ScreenControl.Update is correct.
+func TestAsciiProgram_WritesToDisplay(t *testing.T) {
+	words := loadBin(t, "../_programs/ascii.bin")
+
+	comp := newTestComputer()
+	comp.LoadToRAM(CODE_REGION_START, words)
+	comp.cpu.SetIAR(CODE_REGION_START)
+
+	// Font init ≈ 3600 steps; first character draw ≈ 1600 more.
+	// 60 000 steps gives generous headroom.
+	runNSteps(comp, 60_000)
+
+	if !comp.displayAdapter.HasNonZeroData() {
+		t.Fatal("displayRAM is all-zero after 60 000 steps: OUT instruction not reaching display adapter")
+	}
+
+	frame := comp.screenControl.Frame()
+	for y := range frame {
+		for x := range frame[y] {
+			if frame[y][x] != 0 {
+				return // at least one lit pixel — pass
+			}
+		}
+	}
+	t.Fatal("display frame is all-zero: displayRAM has data but ScreenControl.Update reads wrong bits")
 }
