@@ -14,9 +14,9 @@ _Updated after each phase. This is the living record of where we are and what we
 
 ## Current State
 
-**Active phase:** 16 — computer
-**Last completed:** Phase 15 — cpu
-**Overall progress:** 15 / 17 phases done
+**Active phase:** complete — all 17 phases done
+**Last completed:** Phase 17 — assembler
+**Overall progress:** 17 / 17 phases done
 
 ---
 
@@ -51,6 +51,25 @@ _Updated after each phase. This is the living record of where we are and what we
 **Key insight:** ANDGate8 uses a balanced tree (pairs → pairs-of-pairs → final) rather than a linear chain — reduces gate depth from 7 to 3, closer to real hardware layout.
 
 **Blog:** `blog/BLOG-02.md` ✅
+
+### Phase 17 — assembler ✅
+
+**Commit:** `phase-17: assembler`
+**Package:** `asm`
+**Delivered:**
+
+- `LABEL`, `SYMBOL`, `NUMBER` marker types implementing `marker` interface
+- 17 concrete instruction types (`LOAD`, `STORE`, `DATA`, `JR`, `JMP`, `JMPF`, `CLF`, `IN`, `OUT`, `ADD`, `SHR`, `SHL`, `NOT`, `AND`, `OR`, `XOR`, `CMP`) plus `DEFLABEL`, `DEFSYMBOL` placeholders
+- `CALL` pseudo-instruction (Size=4) expanding to `DATA R3, NEXTINSTRUCTION` + `JMP Routine`
+- `Instructions` helper struct for building instruction lists programmatically
+- `Assembler` — two-pass: pass 1 records label addresses and symbol values; pass 2 injects `CURRENTINSTRUCTION`/`NEXTINSTRUCTION` per instruction and calls `Emit()` with resolvers
+- `Parser` — line-by-line scanner with regex dispatch for all mnemonic families, DEFLABEL, DEFSYMBOL
+
+**Key insight discovered:** `NEXTINSTRUCTION` and `CURRENTINSTRUCTION` must be re-injected into the symbol map before every `Emit()` call in pass 2. If they were fixed after pass 1, `CALL` would emit the wrong return address for every instruction except the first.
+
+**Non-obvious (spec typo):** The phase spec's label-resolution test says "JMP target = 0x0503" but the correct value is 0x0504: JMP (2 words) + DATA (2 words) = position 4 → absolute 0x0504. The comment "0x0500 + 3 = 0x0503" is a typo; `DEFLABEL.Size() = 0` so the label sits at position 4.
+
+**Blog:** `blog/BLOG-17.md` ✅
 
 ### Phase 15 — cpu ✅
 

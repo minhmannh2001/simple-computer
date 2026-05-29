@@ -25,8 +25,8 @@ Each phase maps to one or more chapters from _But How Do It Know?_ by J. Clark S
 | 13 | iobus-and-keyboard | `io` | ✅ Done | ✅ blog/BLOG-13.md |
 | 14 | display | `io` | ✅ Done | ✅ blog/BLOG-14.md |
 | 15 | cpu | `cpu` | ✅ Done | ✅ blog/BLOG-15.md |
-| 16 | computer | `computer` | ⬜ Not started | ⬜ |
-| 17 | assembler | `asm` | ⬜ Not started | ⬜ |
+| 16 | computer | `computer` | ✅ Done | ⬜ |
+| 17 | assembler | `asm` | ✅ Done | ✅ blog/BLOG-17.md |
 
 ---
 
