@@ -587,6 +587,24 @@ func (c *CPU) runSetGeneralPurposeRegisters(state bool) {
 	updateSetStatus(&c.gpReg3, c.gpRegSetANDGates[3].Output())
 }
 
+func (c *CPU) GPReg(n int) uint16 {
+	switch n {
+	case 0:
+		return c.gpReg0.Value()
+	case 1:
+		return c.gpReg1.Value()
+	case 2:
+		return c.gpReg2.Value()
+	case 3:
+		return c.gpReg3.Value()
+	}
+	return 0
+}
+
+func (c *CPU) EqualFlag() bool {
+	return c.flagsBus.GetOutputWire(FLAGS_BUS_EQUAL)
+}
+
 func runUpdateOn(component Updatable) {
 	component.Update()
 }
