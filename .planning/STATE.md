@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-29T06:20:40.638Z"
+last_updated: "2026-05-29T07:29:38.649Z"
 ---
 
 # STATE.md — Project Memory
@@ -51,6 +51,21 @@ _Updated after each phase. This is the living record of where we are and what we
 **Key insight:** ANDGate8 uses a balanced tree (pairs → pairs-of-pairs → final) rather than a linear chain — reduces gate depth from 7 to 3, closer to real hardware layout.
 
 **Blog:** `blog/BLOG-02.md` ✅
+
+### Phase 16 — computer ✅
+
+**Commit:** `phase-16: computer top-level`
+**Package:** `computer`
+**Delivered:**
+
+- `SimpleComputer` — wires mainBus, Memory64K, CPU, KeyboardAdapter, DisplayAdapter, and ScreenControl into a single struct
+- `NewComputer(screenChannel, quitChannel)` — constructs in dependency order: bus → RAM → CPU → peripherals
+- `LoadToRAM(offset, values)` — panics on reserved addresses (< 0x0500 or > 0xFEFF); writes each value using the two-phase bus protocol
+- `Run(tickInterval, printStateConfig)` — writes sentinel JMP at 0xFEFE/0xFEFF, sets IAR to 0x0500, starts `screenControl.Run()` goroutine, then drives clock loop; exits on `quitChannel`
+
+**Key insight discovered:** The sentinel JMP at 0xFEFE lets the CPU handle end-of-memory restart itself — no external check needed in the clock loop. Two words of RAM eliminate an entire category of clock-loop complexity.
+
+**Blog:** `blog/BLOG-16.md` ✅
 
 ### Phase 17 — assembler ✅
 
