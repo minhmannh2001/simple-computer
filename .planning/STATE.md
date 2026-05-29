@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-20T07:31:35.701Z"
+last_updated: "2026-05-29T06:20:40.638Z"
 ---
 
 # STATE.md — Project Memory
@@ -14,9 +14,9 @@ _Updated after each phase. This is the living record of where we are and what we
 
 ## Current State
 
-**Active phase:** 14 — display
-**Last completed:** Phase 13 — iobus-and-keyboard
-**Overall progress:** 13 / 17 phases done
+**Active phase:** 16 — computer
+**Last completed:** Phase 15 — cpu
+**Overall progress:** 15 / 17 phases done
 
 ---
 
@@ -51,6 +51,38 @@ _Updated after each phase. This is the living record of where we are and what we
 **Key insight:** ANDGate8 uses a balanced tree (pairs → pairs-of-pairs → final) rather than a linear chain — reduces gate depth from 7 to 3, closer to real hardware layout.
 
 **Blog:** `blog/BLOG-02.md` ✅
+
+### Phase 15 — cpu ✅
+
+**Commit:** `phase-15: CPU`
+**Package:** `cpu`
+**Delivered:**
+
+- `CPU` struct — wires all 14 previous components together: 9 registers (R0–R3, TMP, ACC, IR, IAR, FLAGS), Stepper, ALU, BusOne, Memory64K, IOBus; implements full 6-step fetch-decode-execute cycle
+- `NewCPU(mainBus, mem)` — constructor initializes all gate arrays, decoders, OR/AND trees, and internal buses
+- `Step()` — advances one full clock cycle (two half-steps: rising and falling edge); drives enable then set for each phase
+- `SetIAR(addr)` — loads a 16-bit address into IAR for program start
+- `ConnectPeripheral(p)` — wires an I/O peripheral to the CPU's IOBus and mainBus
+
+**Key insight discovered:** Our `Stepper` bootstraps step 0 active in `NewStepper()` by calling `step()` during construction. The reference Stepper starts all-false and becomes active on the first `Update`. Net effect: all stepper indices in the CPU need a +1 shift (mod 6) relative to the reference. Mapping: ref[0]→ours[1], ref[1]→ours[2], ..., ref[5]→ours[0].
+
+**Non-obvious:** Import alias `sio "simple-computer/io"` is required because Go's stdlib `io` package collides with our package name at the identifier level.
+
+**Blog:** `blog/BLOG-15.md` ✅
+
+### Phase 14 — display ✅
+
+**Commit:** `phase-14: display`
+**Package:** `io`
+**Delivered:**
+
+- `displayRAM` — private frame buffer with 4,800 16-bit cells (30 bytes × 160 rows), `InputAddressRegister` for CPU writes, `OutputAddressRegister` for ScreenControl reads, Set/Unset/Enable/Disable/UpdateIncoming/UpdateOutgoing
+- `DisplayAdapter` — I/O peripheral at address `0x0007`; detects address via ANDGate8 (NOT gates on wires 8–12, direct on 13–15); latches selection in `displayAdapterActiveBit`; two-phase write protocol enforced by `writeToRAM` toggle latch; `inputMARSetGate` fires on first write (latches address), `displayRAMSetGate` fires on second write (writes cell)
+- `ScreenControl` — goroutine that scans all 4,800 cells at ~30fps; extracts 8 pixels per cell from bits 15–8 (high byte); pushes `[160][240]byte` frames to an output channel
+
+**Key insight discovered:** Two separate address registers on `displayRAM` are the hardware solution to the concurrent-access problem. The control logic and the screen scanner both need the frame buffer, but they run at different rates and in different orders. One address register per accessor means neither can corrupt the other's scan pointer — no locking required.
+
+**Blog:** `blog/BLOG-14.md` ✅
 
 ### Phase 13 — iobus-and-keyboard ✅
 
